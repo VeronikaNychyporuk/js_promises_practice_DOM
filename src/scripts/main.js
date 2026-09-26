@@ -11,13 +11,18 @@ function createNotification(type, message) {
 }
 
 const firstPromise = new Promise((resolve, reject) => {
-  document.addEventListener('click', () => {
-    resolve('First promise was resolved');
-  });
-
-  setTimeout(() => {
+  const timeoutId = setTimeout(() => {
+    document.removeEventListener('click', handleClick);
     reject(new Error('First promise was rejected'));
   }, 3000);
+
+  function handleClick() {
+    clearTimeout(timeoutId);
+    document.removeEventListener('click', handleClick);
+    resolve('First promise was resolved');
+  }
+
+  document.addEventListener('click', handleClick);
 });
 
 const secondPromise = new Promise((resolve) => {
@@ -36,20 +41,24 @@ const thirdPromise = new Promise((resolve) => {
 
   function checkBothClicks() {
     if (leftClicked && rightClicked) {
+      document.removeEventListener('click', handleLeftClick);
+      document.removeEventListener('contextmenu', handleRightClick);
       resolve('Third promise was resolved');
     }
   }
 
-  document.addEventListener('click', () => {
+  function handleLeftClick() {
     leftClicked = true;
     checkBothClicks();
-  });
+  }
 
-  document.addEventListener('contextmenu', (e) => {
-    e.preventDefault();
+  function handleRightClick() {
     rightClicked = true;
     checkBothClicks();
-  });
+  }
+
+  document.addEventListener('click', handleLeftClick);
+  document.addEventListener('contextmenu', handleRightClick);
 });
 
 firstPromise
@@ -58,8 +67,8 @@ firstPromise
 
 secondPromise
   .then((messageText) => createNotification('success', messageText))
-  .catch();
+  .catch((error) => createNotification('error', error.message));
 
 thirdPromise
   .then((messageText) => createNotification('success', messageText))
-  .catch();
+  .catch((error) => createNotification('error', error.message));
